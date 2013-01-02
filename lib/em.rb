@@ -26,7 +26,7 @@ EM.synchrony do
           @daily_email_count = {}
           
           i = 0
-          Date.today.downto(Date.parse("2012-12-23")) do |date|
+          Date.today.downto(Date.today - 21 - Date.today.wday) do |date|
             EM.add_timer(3*i) do
               Fiber.new do
                 ws.send "calendar_tick##{(Date.today - date).to_i}:1"
