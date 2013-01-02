@@ -27,7 +27,7 @@ EM.synchrony do
           
           i = 0
           Date.today.downto(Date.today - 21 - Date.today.wday) do |date|
-            EM.add_timer(3*i) do
+            EM.add_timer(5*i) do
               Fiber.new do
                 ws.send "calendar_tick##{(Date.today - date).to_i}:1"
                 email_senders_for_date(ws, date)
@@ -46,7 +46,7 @@ EM.synchrony do
       relative_week = ((Date.today - date).to_i + date.wday) / 7
       i = 0
       @gmail.inbox.emails(:on => date).each do |email|
-        EM.add_timer(0.1*i) do
+        EM.add_timer(0.3*i) do
           Fiber.new do
             from_domain = sender_for_email(email)
             ws.send "email_tick##{from_domain}:#{relative_week}:#{date.wday}"
