@@ -1,0 +1,177 @@
+<h1 id="logo">
+  <a href="/">Tempo</a>
+  <div id="calendar"></div>
+</h1>
+<h2 id="status"></h2>
+<div id="email_senders"></div>
+
+<script>
+
+var Senders = {};
+
+var Sender = function(name) {
+  if (name in Senders)
+    return Senders[name];
+  else
+    return new sender(name);
+}
+
+var sender = function(name) {
+  
+  this.id = 'sender_' + name.split(".")[0];
+  this.name = name;
+  this.emails = [[],[],[],[]];
+  
+  this.uniq = function() {
+    var total = 0;
+    for( var week = 0; week < 4; week++) {
+      total += this.weekly_uniq(this.emails[week]);
+    }
+    return total;
+  }
+  
+  this.weekly_uniq = function(emails) {
+    var total = 0
+    for( var day = 0; day < 7; day++) {
+      if (emails[day])
+        total++
+    }
+    return total;
+  }
+  
+  this.weekly_overloaded = function(emails) {
+    var total = 0
+    for( var day = 0; day < 7; day++) {
+      if (emails[day] > 1)
+        total++
+    }
+    return total;
+  }
+  
+  this.add_email = function(week, day) {
+    if (!this.emails[week][day]) this.emails[week][day] = 0;
+    this.emails[week][day] += 1;
+    if (this.uniq() == 2) this.div().css('opacity', 1.0);
+    this.update_week(week);
+    this.div().data('emails', this.uniq())
+    
+    var me = this;
+    
+    $(".sender").each(function(e){
+        if (me.uniq() > $(this).data('emails')) {
+            me.div().insertBefore($(this));
+            return false;
+        }
+    });
+  }
+  
+  this.update_week = function(week) {
+    var full_days       = this.weekly_uniq(this.emails[week]);
+    var overloaded_days = this.weekly_overloaded(this.emails[week]);
+    for (var day=0; day<7; day++) {
+      var day_tick = $('#'+this.id+' .week_'+week+' .date_'+day);
+      day_tick.removeClass('full empty overload')
+      if (day < overloaded_days)
+        day_tick.addClass('overload');
+      else if (day < full_days)
+        day_tick.addClass('full');
+      else
+        day_tick.addClass('empty');
+    }
+  }
+  
+  this.div = function() {
+    var my_div = $('#'+this.id);
+    if(my_div.length > 0)
+      return my_div;
+    
+    var div = $('<div class="sender"></div>');
+    for(var week=3; week >= 0; week--) {
+      var week_div = $('<div class="week week_'+week+'"></div>');
+      for(var day=6; day >= 0; day--) {
+        week_div.append('<div class="date empty date_'+day+'"></div>');
+      }
+      div.append(week_div);
+    }
+    div.attr('id', this.id);
+    div.css('opacity', 0.2);
+    div.append('<h2>'+name+'</h2>');
+    div.data('emails', 0);
+    return div;
+  }
+  
+  $('#email_senders').append(this.div());
+  Senders[name] = this;
+  
+  return this;
+}
+
+var ws = new WebSocket("ws://<%= DOMAIN %>:8080");
+
+ws.onopen = function () {
+    ws.send("<%= websocket_session %>");
+};
+
+ws.onmessage = function (evt) {
+    var msg = evt.data;
+    
+    if (msg.indexOf("#") == -1) {
+      set_status(msg);
+      return;
+    }
+    
+    var header = msg.split("#")[0];
+    msg        = msg.split("#")[1];
+    
+    if (header == "email_tick") {
+      msg = msg.split(":");
+      var name   = msg[0];
+      var week   = parseInt(msg[1]);
+      var day    = parseInt(msg[2]);
+      
+      Sender(name).add_email(week, day);
+      set_status(name);
+      
+    } else if (header == "calendar_tick") {
+      
+      msg = msg.split(":");
+      var day   = parseInt(msg[0]);
+      var state = parseInt(msg[1]);
+      mark_calendar_day(day, state);
+      
+    } else if (header == "signout") {
+      window.location = "/signout"
+    }
+    
+};
+ws.onclose = function () {
+  set_status("Connection Lost")
+};
+var status_interval = null;
+
+function set_status(text) {
+  $('#status').text(text).css('opacity', 0.2);
+  if (status_interval != null) {
+    clearInterval(status_interval);
+    status_interval = null;
+  }
+  status_interval = setTimeout(function() {
+    $('#status').css('opacity', 0);
+  }, 5000);
+}
+
+function mark_calendar_day(day, state) {
+  if (state == "1") {
+    $('#calendar_day_'+day).addClass('breathe');
+  } else if (state == "2") {
+    $('#calendar_day_'+day).removeClass('breathe').addClass('finished');
+  }
+    
+}
+
+for (var i = <%= 21 + Date.today.wday %>; i >= 0 ; i--) {
+  $('#calendar').append('<div class="calendar_day" id="calendar_day_'+i+'"></div>')
+}
+
+
+</script>

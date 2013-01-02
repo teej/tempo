@@ -1,0 +1,13 @@
+#welcome { padding: 150px 0; }
+#welcome h1 { font-size: 48px; font-weight: 800; }
+#welcome .tagline { font-size:24px; margin: 30px 0 }
+#welcome .try-button {
+  font-size: 24px;
+  font-weight: bold;
+  text-shadow: 0 -1px rgba(0, 66, 155, 0.5);
+  padding: 10px 15px;
+  border-width: 0;
+  border-radius: 6px;
+  color: white;
+  background: -webkit-linear-gradient(top, rgba(0,181,246,1) 0%,rgba(0,123,240,1) 100%);
+}

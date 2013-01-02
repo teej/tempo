@@ -1,0 +1,33 @@
+#logo { margin: 60px 0 0; overflow: hidden; }
+#logo a { text-decoration: none; color: #373c3f; font-size: 48px; font-weight: 800; float: left; }
+
+#calendar { width: 77px; float: left; margin-left: 80px; }
+#calendar .calendar_day { width: 7px; height: 7px; margin: 0 4px 4px 0; background-color: #373c3f; float: left; opacity: 0.2; -webkit-transition: opacity 0.4s; }
+#calendar .calendar_day.breathe { -webkit-animation: breathe 2s linear infinite; }
+#calendar .calendar_day.finished { opacity: 1.0; }
+
+@-webkit-keyframes breathe /* Safari and Chrome */
+{
+0%   { opacity: 0.2; }
+50%  { opacity: 0.6; }
+100% { opacity: 0.2; }
+}
+
+#status {
+  color: #373c3f;
+  opacity: 0.2;
+  line-height: 14px;
+  margin: 20px 0;
+  font-size: 14px;
+  text-transform: uppercase;
+  font-weight: 800;
+  -webkit-transition: opacity 0.2s;
+}
+
+.sender { overflow: hidden; margin-bottom: 20px; }
+.sender .week { width: 18px; float: left; margin-right: 3px; }
+.sender .week .date { width: 18px; height: 3px; margin-bottom: 2px; }
+.sender .week .date.empty    { background-color: #d7d8d9;}
+.sender .week .date.full     { background-color: #373c3f;}
+.sender .week .date.overload { background-color: #ef8065;}
+.sender h2 { font-size: 24px; float: left; margin: 5px 0 0 20px; }
