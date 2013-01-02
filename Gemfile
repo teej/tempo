@@ -45,3 +45,5 @@ gem 'em-imap', :git => "https://teej@github.com/teej/em-imap.git", :branch => "s
 gem "ruby-gmail-em", :git => "https://teej@github.com/teej/ruby-gmail.git", :branch => "eventmachine"
 gem 'omniauth'
 gem 'omniauth-google-oauth2'
+gem 'thin'
+gem 'execjs'
