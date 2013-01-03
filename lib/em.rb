@@ -57,6 +57,7 @@ EM.synchrony do
         gmail(ws).inbox.emails(:on => date).each do |email|
           EM.add_timer(0.3*i) do
             Fiber.new do
+              # puts email.header.inspect
               from_domain = sender_for_email(email)
               ws.send "email_tick##{from_domain}:#{relative_week}:#{date.wday}"
               @daily_email_count[date.to_s] -= 1
@@ -72,7 +73,7 @@ EM.synchrony do
     end
     
     def sender_for_email(email)
-      email.from.first.split("@").last.split(".")[-2..-1].join(".")
+      email.from.split("@").last.split(".")[-2..-1].join(".")
     end
     
     def gmail(ws)

@@ -9,7 +9,7 @@ GIT
 
 GIT
   remote: https://teej@github.com/teej/ruby-gmail.git
-  revision: ecb4797397435340fea6885f779af7be5a6a1deb
+  revision: 17cdfecefe81620b7687cbc95c26c7e113c05b96
   branch: eventmachine
   specs:
     ruby-gmail-em (0.2.2)
