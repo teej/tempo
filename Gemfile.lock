@@ -1,4 +1,13 @@
 GIT
+  remote: https://teej@github.com/teej/em-imap.git
+  revision: 81560953e689a2d28c931b15e0bbe2730bd7c802
+  branch: synchrony
+  specs:
+    em-imap (0.2.2)
+      deferrable_gratification
+      eventmachine
+
+GIT
   remote: https://teej@github.com/teej/ruby-gmail.git
   revision: ecb4797397435340fea6885f779af7be5a6a1deb
   branch: eventmachine
@@ -52,9 +61,6 @@ GEM
     coffee-script-source (1.4.0)
     daemons (1.1.9)
     deferrable_gratification (0.3.1)
-      eventmachine
-    em-imap (0.2.2)
-      deferrable_gratification
       eventmachine
     em-synchrony (1.0.2)
       eventmachine (>= 1.0.0.beta.1)
@@ -162,7 +168,7 @@ PLATFORMS
 DEPENDENCIES
   coffee-rails (~> 3.2.1)
   daemons
-  em-imap
+  em-imap!
   em-synchrony
   em-websocket
   eventmachine

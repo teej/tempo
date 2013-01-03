@@ -14,15 +14,21 @@ EM.synchrony do
   EM::WebSocket.start(:host => "0.0.0.0", :port => 8080) do |ws|
     
     ws.onopen    { ws.send "Authenticating..." }
-    ws.onclose   { }
+    ws.onclose   do
+      @@connections[ws.object_id] = nil
+    end
     ws.onmessage do |msg|
-      puts msg
+      
+      @@connections ||= {}
+      @@connections[ws.object_id] ||= {}
+      
+      
       header, msg = msg.split("#")
       
       if header == "login"
         Fiber.new do
-          @email, @oauth = msg.split(":")
-          _gmail = Gmail.new(@email, @oauth)
+          @@connections[ws.object_id][:email], @@connections[ws.object_id][:oauth] = msg.split(":")
+          _gmail = Gmail.new(@@connections[ws.object_id][:email], @@connections[ws.object_id][:oauth])
           _gmail.login
           if _gmail.logged_in?
             ws.send "Done"
@@ -47,8 +53,8 @@ EM.synchrony do
       i = 0
       # Gmail.new(@email, @oauth) do |gmail|
         # gmail.peek = true
-        @daily_email_count[date.to_s] = gmail.inbox.count(:on => date)
-        gmail.inbox.emails(:on => date).each do |email|
+        @daily_email_count[date.to_s] = gmail(ws).inbox.count(:on => date)
+        gmail(ws).inbox.emails(:on => date).each do |email|
           EM.add_timer(0.3*i) do
             Fiber.new do
               from_domain = sender_for_email(email)
@@ -69,18 +75,21 @@ EM.synchrony do
       email.from.first.split("@").last.split(".")[-2..-1].join(".")
     end
     
-    def gmail
-      if @gmail
-        if @gmail.logged_in?
-          return @gmail
+    def gmail(ws)
+      
+      # puts "*"*25, self, "*"*25
+      
+      if @@connections[ws.object_id][:gmail]
+        if @@connections[ws.object_id][:gmail].logged_in?
+          return @@connections[ws.object_id][:gmail]
         else
-          @gmail = nil
+          @@connections[ws.object_id][:gmail] = nil
         end
       end
-      @gmail = Gmail.new(@email, @oauth)
-      @gmail.peek = true
-      @gmail.login
-      @gmail
+      @@connections[ws.object_id][:gmail] = Gmail.new(@@connections[ws.object_id][:email], @@connections[ws.object_id][:oauth])
+      @@connections[ws.object_id][:gmail].peek = true
+      @@connections[ws.object_id][:gmail].login
+      @@connections[ws.object_id][:gmail]
     end
   end
 end

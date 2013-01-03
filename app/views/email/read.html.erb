@@ -106,7 +106,7 @@ var sender = function(name) {
   return this;
 }
 
-var ws = new WebSocket("ws://<%= DOMAIN %>:8080");
+var ws = new WebSocket("ws://<%= APP_DOMAIN %>:8080");
 
 ws.onopen = function () {
     ws.send("<%= websocket_session %>");
@@ -131,6 +131,7 @@ ws.onmessage = function (evt) {
       var day    = parseInt(msg[2]);
       
       Sender(name).add_email(week, day);
+      track_email(name, week, day);
       set_status(name);
       
     } else if (header == "calendar_tick") {
@@ -169,6 +170,12 @@ function mark_calendar_day(day, state) {
     if (day > tick_finished) tick_finished = day;
   }
     
+}
+
+var untracked_emails = {};
+
+function track_email(name, week, day) {
+  
 }
 
 for (var i = <%= 21 + Date.today.wday %>; i >= 0 ; i--) {
