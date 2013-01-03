@@ -63,6 +63,7 @@ EM.synchrony do
       i = 0
       # Gmail.new(@email, @oauth) do |gmail|
         # gmail.peek = true
+        return unless @@connections[ws.object_id]
         @daily_email_count[date.to_s] = gmail(ws).inbox.count(:on => date)
         gmail(ws).inbox.emails(:on => date).each do |email|
           EM.add_timer(0.3*i) do
