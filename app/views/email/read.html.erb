@@ -178,14 +178,19 @@ function track_email(name, week, day) {
   
 }
 
-for (var i = <%= 21 + Date.today.wday %>; i >= 0 ; i--) {
+var days_to_process = <%= 21 + Date.today.wday %>;
+for (var i = days_to_process; i >= 0 ; i--) {
   $('#calendar').append('<div class="calendar_day" id="calendar_day_'+i+'"></div>')
 }
 
 var tick_day = -1;
 var tick_finished = -1;
-setInterval(function() {
+var tick_interval = setInterval(function() {
   if (tick_day - tick_finished > 3) return;
+  if (tick_day > days_to_process) {
+    clearInterval(tick_interval);
+    return;
+  }
   if (tick_day >= 0) {
     ws.send("get_tick#"+tick_day);
     tick_day += 1;
