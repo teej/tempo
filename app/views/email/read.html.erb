@@ -116,7 +116,10 @@ ws.onmessage = function (evt) {
     var msg = evt.data;
     
     if (msg.indexOf("#") == -1) {
-      if (msg == "Done") tick_day = 0;
+      if (msg == "Done") {
+        tick_day = 0;
+        run_tick();
+      }
       set_status(msg);
       return;
     }
@@ -131,7 +134,6 @@ ws.onmessage = function (evt) {
       var day    = parseInt(msg[2]);
       
       Sender(name).add_email(week, day);
-      track_email(name, week, day);
       set_status(name);
       
     } else if (header == "calendar_tick") {
@@ -172,12 +174,6 @@ function mark_calendar_day(day, state) {
     
 }
 
-var untracked_emails = {};
-
-function track_email(name, week, day) {
-  
-}
-
 var days_to_process = <%= 21 + Date.today.wday %>;
 for (var i = days_to_process; i >= 0 ; i--) {
   $('#calendar').append('<div class="calendar_day" id="calendar_day_'+i+'"></div>')
@@ -185,7 +181,8 @@ for (var i = days_to_process; i >= 0 ; i--) {
 
 var tick_day = -1;
 var tick_finished = -1;
-var tick_interval = setInterval(function() {
+var run_tick = function() {
+  console.log("Running "+tick_day);
   if (tick_day - tick_finished > 3) return;
   if (tick_day > days_to_process) {
     clearInterval(tick_interval);
@@ -195,6 +192,8 @@ var tick_interval = setInterval(function() {
     ws.send("get_tick#"+tick_day);
     tick_day += 1;
   }
-}, 5000);
+}
+
+var tick_interval = setInterval(run_tick, 5000);
 
 </script>
