@@ -14,9 +14,8 @@ EM.synchrony do
   EM::WebSocket.start(:host => "0.0.0.0", :port => 8080) do |ws|
     
     ws.onopen    { ws.send "Authenticating..." }
-    ws.onclose   do
-      @@connections[ws.object_id] = nil
-    end
+    ws.onclose   { @@connections[ws.object_id] = nil }
+    ws.onerror   { ws.close_websocket }
     ws.onmessage do |msg|
       
       @@connections ||= {}
@@ -27,6 +26,7 @@ EM.synchrony do
       
       if header == "login"
         Fiber.new do
+          
           @@connections[ws.object_id][:email], @@connections[ws.object_id][:oauth] = msg.split(":")
           _gmail = Gmail.new(@@connections[ws.object_id][:email], @@connections[ws.object_id][:oauth])
           _gmail.login
