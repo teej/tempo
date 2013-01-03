@@ -18,7 +18,7 @@ EM.synchrony do
     @@log.level = Logger::INFO
     
     ws.onopen    { ws.send "Authenticating..." }
-    ws.onclose   { @@connections[ws.object_id] = nil }
+    ws.onclose   { conn = nil }
     ws.onerror   { ws.close_websocket }
     ws.onmessage do |msg|
       
@@ -32,12 +32,12 @@ EM.synchrony do
         if header == "login"
           Fiber.new do
           
-            @@connections[ws.object_id][:email], @@connections[ws.object_id][:oauth] = msg.split(":")
-            _gmail = Gmail.new(@@connections[ws.object_id][:email], @@connections[ws.object_id][:oauth])
+            conn[:email], conn[:oauth] = msg.split(":")
+            _gmail = Gmail.new(conn[:email], conn[:oauth])
             _gmail.login
             if _gmail.logged_in?
               ws.send "Done"
-              @@log.info "New user authorized: #{@@connections[ws.object_id][:email][0..5]}"
+              @@log.info "New user authorized: #{conn[:email][0..5]}"
             else
               ws.send "signout#"
             end
@@ -63,12 +63,15 @@ EM.synchrony do
       i = 0
       # Gmail.new(@email, @oauth) do |gmail|
         # gmail.peek = true
-        return unless @@connections[ws.object_id]
+        
         @daily_email_count[date.to_s] = gmail(ws).inbox.count(:on => date)
         gmail(ws).inbox.emails(:on => date).each do |email|
           EM.add_timer(0.3*i) do
             Fiber.new do
               # puts email.header.inspect
+              
+              return unless conn
+              
               from_domain = sender_for_email(email)
               ws.send "email_tick##{from_domain}:#{relative_week}:#{date.wday}"
               @daily_email_count[date.to_s] -= 1
@@ -87,21 +90,23 @@ EM.synchrony do
       email.from.split("@").last.split(".")[-2..-1].join(".")
     end
     
+    def conn
+      @@connections[ws.object_id]
+    end
+    
     def gmail(ws)
       
-      # puts "*"*25, self, "*"*25
-      
-      if @@connections[ws.object_id][:gmail]
-        if @@connections[ws.object_id][:gmail].logged_in?
-          return @@connections[ws.object_id][:gmail]
+      if conn[:gmail]
+        if conn[:gmail].logged_in?
+          return conn[:gmail]
         else
-          @@connections[ws.object_id][:gmail] = nil
+          conn[:gmail] = nil
         end
       end
-      @@connections[ws.object_id][:gmail] = Gmail.new(@@connections[ws.object_id][:email], @@connections[ws.object_id][:oauth])
-      @@connections[ws.object_id][:gmail].peek = true
-      @@connections[ws.object_id][:gmail].login
-      @@connections[ws.object_id][:gmail]
+      conn[:gmail] = Gmail.new(conn[:email], conn[:oauth])
+      conn[:gmail].peek = true
+      conn[:gmail].login
+      conn[:gmail]
     end
   end
 end
