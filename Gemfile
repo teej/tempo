@@ -41,7 +41,7 @@ gem 'eventmachine'
 gem 'em-synchrony'
 gem 'em-websocket'
 gem "gmail_xoauth"
-gem 'em-imap', :git => "https://teej@github.com/teej/em-imap.git", :branch => "synchrony"
+gem 'em-imap' #, :git => "https://teej@github.com/teej/em-imap.git", :branch => "synchrony"
 gem "ruby-gmail-em", :git => "https://teej@github.com/teej/ruby-gmail.git", :branch => "eventmachine"
 gem 'omniauth'
 gem 'omniauth-google-oauth2'

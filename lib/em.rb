@@ -11,58 +11,76 @@ load 'app/models/sender.rb'
 
 EM.synchrony do
   
-  EM::WebSocket.start(:host => "0.0.0.0", :port => 8080) do |ws|
+  EM::WebSocket.start(:host => "localhost", :port => 8080) do |ws|
     
     ws.onopen    { ws.send "Authenticating..." }
     ws.onclose   { }
     ws.onmessage do |msg|
-      Fiber.new do
-        email, oauth = msg.split(":")
-        @gmail = Gmail.new(email, oauth)
-        @gmail.peek = true
-        if @gmail.login
-          ws.send "Done"
-          
-          @daily_email_count = {}
-          
-          i = 0
-          Date.today.downto(Date.today - 21 - Date.today.wday) do |date|
-            EM.add_timer(5*i) do
-              Fiber.new do
-                ws.send "calendar_tick##{(Date.today - date).to_i}:1"
-                email_senders_for_date(ws, date)
-              end.resume
-            end
-            i += 1
+      puts msg
+      header, msg = msg.split("#")
+      
+      if header == "login"
+        Fiber.new do
+          @email, @oauth = msg.split(":")
+          _gmail = Gmail.new(@email, @oauth)
+          _gmail.login
+          if _gmail.logged_in?
+            ws.send "Done"
+          else
+            ws.send "signout#"
           end
-          
-        else
-          ws.send "signout#"
-        end
-      end.resume
+          _gmail.logout
+        end.resume
+      elsif header == "get_tick"
+        date = Date.today - msg.to_i
+        @daily_email_count ||= {}
+        Fiber.new do
+          ws.send "calendar_tick##{msg}:1"
+          email_senders_for_date(ws, date)
+        end.resume
+      end
+      
     end
     
     def email_senders_for_date(ws, date)
       relative_week = ((Date.today - date).to_i + date.wday) / 7
       i = 0
-      @gmail.inbox.emails(:on => date).each do |email|
-        EM.add_timer(0.3*i) do
-          Fiber.new do
-            from_domain = sender_for_email(email)
-            ws.send "email_tick##{from_domain}:#{relative_week}:#{date.wday}"
-            @daily_email_count[date.to_s] -= 1
-            if (@daily_email_count[date.to_s] == 0)
-              ws.send "calendar_tick##{(Date.today - date).to_i}:2"
-            end
-          end.resume
-        end
-        i += 1
+      # Gmail.new(@email, @oauth) do |gmail|
+        # gmail.peek = true
+        @daily_email_count[date.to_s] = gmail.inbox.count(:on => date)
+        gmail.inbox.emails(:on => date).each do |email|
+          EM.add_timer(0.3*i) do
+            Fiber.new do
+              from_domain = sender_for_email(email)
+              ws.send "email_tick##{from_domain}:#{relative_week}:#{date.wday}"
+              @daily_email_count[date.to_s] -= 1
+              if (@daily_email_count[date.to_s] == 0)
+                ws.send "calendar_tick##{(Date.today - date).to_i}:2"
+              end
+            end.resume
+          end
+          i += 1
+        # end
       end
-      @daily_email_count[date.to_s] = i
+      
     end
     
     def sender_for_email(email)
       email.from.first.split("@").last.split(".")[-2..-1].join(".")
+    end
+    
+    def gmail
+      if @gmail
+        if @gmail.logged_in?
+          return @gmail
+        else
+          @gmail = nil
+        end
+      end
+      @gmail = Gmail.new(@email, @oauth)
+      @gmail.peek = true
+      @gmail.login
+      @gmail
     end
   end
 end

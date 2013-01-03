@@ -116,6 +116,7 @@ ws.onmessage = function (evt) {
     var msg = evt.data;
     
     if (msg.indexOf("#") == -1) {
+      if (msg == "Done") tick_day = 0;
       set_status(msg);
       return;
     }
@@ -165,6 +166,7 @@ function mark_calendar_day(day, state) {
     $('#calendar_day_'+day).addClass('breathe');
   } else if (state == "2") {
     $('#calendar_day_'+day).removeClass('breathe').addClass('finished');
+    if (day > tick_finished) tick_finished = day;
   }
     
 }
@@ -173,5 +175,14 @@ for (var i = <%= 21 + Date.today.wday %>; i >= 0 ; i--) {
   $('#calendar').append('<div class="calendar_day" id="calendar_day_'+i+'"></div>')
 }
 
+var tick_day = -1;
+var tick_finished = -1;
+setInterval(function() {
+  if (tick_day - tick_finished > 3) return;
+  if (tick_day >= 0) {
+    ws.send("get_tick#"+tick_day);
+    tick_day += 1;
+  }
+}, 5000);
 
 </script>
