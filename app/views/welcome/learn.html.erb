@@ -1,0 +1,31 @@
+<div id="learn">
+  <h1 id="logo"><a href="/">Tempo</a></h1>
+  <div class="explanation">
+    <strong>Tempo</strong> is a simple app I made to better understand where my email was coming from.
+    
+    <h3>How It Works</h3>
+    
+    <ul>
+      <li>You authorize Tempo to access your email via IMAP</li>
+      <li>Tempo reads the headers of every email you've been sent in the last 4 weeks</li>
+      <li>You get a visualization like this:</li>
+      <%= image_tag('screenshot.png') %>
+      <li>That's it!</li>
+    </ul>
+    
+    <h3>Security &amp; Privacy</h3>
+    Giving an app access to your email can be scary.  That's why I'm fully disclosing my usage of your account.
+    <ul>
+      <li>After you authorize Tempo, your email address and OAuth token get saved in a session</li>
+      <li>The app uses these credentials to access GMail via IMAP</li>
+      <li>When you use Tempo for the first time, I log the first 5 characters of your email address</li>
+      <li>I use the &ldquo;PEEK&rdquo; protocol, which means none of your mail get's marked as read</li>
+      <li>Tempo only asks for an email's uid and its &ldquo;From:&rdquo; header</li>
+      <li>Tempo will only check the last 4 weeks of email in your inbox</li>
+    </ul>
+    <p>
+    After you've tried Tempo, feel free to <a href="/signout">sign out</a>, this will delete any trace of your account.  You can also <a href="https://accounts.google.com/b/0/IssuedAuthSubTokens?hl=en_US">revoke Tempo's access</a> through Google.  And for those who are interested, you can browse the source code <a href="https://github.com/teej/tempo">on Github</a>.
+    </p>
+    <p>I hope you enjoy Tempo!  If you did, please share it with others.</p>
+  </div>
+</div>

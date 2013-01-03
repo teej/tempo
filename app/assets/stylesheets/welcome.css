@@ -1,6 +1,13 @@
-#welcome { padding: 150px 0; }
+#welcome { margin: 150px 0; }
 #welcome h1 { font-size: 48px; font-weight: 800; }
 #welcome .tagline { font-size:24px; margin: 30px 0 }
+
+#learn { margin-top: 150px}
+#learn .explanation { font-size:15px; margin: 30px 0; line-height: 23px; font-weight: 300; }
+#learn ul { margin-top: 10px; }
+#learn li { line-height: 23px; }
+#learn img { border: 3px solid #eee; margin:10px; }
+
 #welcome .try-button {
   font-size: 24px;
   font-weight: bold;

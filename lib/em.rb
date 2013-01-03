@@ -6,12 +6,16 @@ require 'gmail_xoauth'
 require 'gmail'
 require 'em-synchrony'
 require 'em-websocket'
+require 'logger'
 
 load 'app/models/sender.rb'
 
 EM.synchrony do
   
   EM::WebSocket.start(:host => "0.0.0.0", :port => 8080) do |ws|
+    
+    @@log = Logger.new(File.expand_path('~/tempo_server.log'), 'daily')
+    @@log.level = Logger::INFO
     
     ws.onopen    { ws.send "Authenticating..." }
     ws.onclose   { @@connections[ws.object_id] = nil }
@@ -21,31 +25,37 @@ EM.synchrony do
       @@connections ||= {}
       @@connections[ws.object_id] ||= {}
       
+      begin
+        
+        header, msg = msg.split("#")
       
-      header, msg = msg.split("#")
-      
-      if header == "login"
-        Fiber.new do
+        if header == "login"
+          Fiber.new do
           
-          @@connections[ws.object_id][:email], @@connections[ws.object_id][:oauth] = msg.split(":")
-          _gmail = Gmail.new(@@connections[ws.object_id][:email], @@connections[ws.object_id][:oauth])
-          _gmail.login
-          if _gmail.logged_in?
-            ws.send "Done"
-          else
-            ws.send "signout#"
-          end
-          _gmail.logout
-        end.resume
-      elsif header == "get_tick"
-        date = Date.today - msg.to_i
-        @daily_email_count ||= {}
-        Fiber.new do
-          ws.send "calendar_tick##{msg}:1"
-          email_senders_for_date(ws, date)
-        end.resume
+            @@connections[ws.object_id][:email], @@connections[ws.object_id][:oauth] = msg.split(":")
+            _gmail = Gmail.new(@@connections[ws.object_id][:email], @@connections[ws.object_id][:oauth])
+            _gmail.login
+            if _gmail.logged_in?
+              ws.send "Done"
+              @@log.info "New user authorized: #{@@connections[ws.object_id][:email][0..5]}"
+            else
+              ws.send "signout#"
+            end
+            _gmail.logout
+          end.resume
+        elsif header == "get_tick"
+          date = Date.today - msg.to_i
+          @daily_email_count ||= {}
+          Fiber.new do
+            ws.send "calendar_tick##{msg}:1"
+            email_senders_for_date(ws, date)
+          end.resume
+        end
+      rescue Exception => e
+        @@log.error "-- error: [#{e.inspect}]"
+        @@log.error e.backtrace
+        ws.close_websocket
       end
-      
     end
     
     def email_senders_for_date(ws, date)

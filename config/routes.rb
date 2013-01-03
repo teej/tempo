@@ -7,6 +7,7 @@ Tempo::Application.routes.draw do
   match "/signout" => "sessions#destroy", :as => :signout
   
   match "/sonata" => "email#read", :as => :sonata
+  match "/learn"  => "welcome#learn", :as => :learn
   
   # The priority is based upon order of creation:
   # first created -> highest priority.
