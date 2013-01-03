@@ -11,7 +11,7 @@ load 'app/models/sender.rb'
 
 EM.synchrony do
   
-  EM::WebSocket.start(:host => "localhost", :port => 8080) do |ws|
+  EM::WebSocket.start(:host => "0.0.0.0", :port => 8080) do |ws|
     
     ws.onopen    { ws.send "Authenticating..." }
     ws.onclose   { }
