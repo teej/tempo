@@ -67,4 +67,4 @@ Tempo::Application.configure do
 end
 
 OmniAuth.config.full_host = "http://usetempo.com"
-DOMAIN = "usetempo.com"
+APP_DOMAIN = "ec2-23-20-174-27.compute-1.amazonaws.com"

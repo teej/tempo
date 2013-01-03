@@ -37,4 +37,4 @@ Tempo::Application.configure do
 end
 
 OmniAuth.config.full_host = "http://localhost:3000"
-DOMAIN = "localhost"
+APP_DOMAIN = "localhost"
