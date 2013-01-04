@@ -49,11 +49,16 @@ module EventMachine
             return unless conn
             
             Fiber.new do
-              sender_tld = extract_sender_tld(email)
-              send "email_tick##{sender_tld}:#{weeks_ago}:#{date.wday}"
-              conn[:daily_email_count][date.to_s] -= 1
-              if (conn[:daily_email_count][date.to_s] == 0)
-                send "calendar_tick##{(Date.today - date).to_i}:2"
+              
+              begin
+                sender_tld = extract_sender_tld(email)
+                send "email_tick##{sender_tld}:#{weeks_ago}:#{date.wday}"
+                conn[:daily_email_count][date.to_s] -= 1
+                if (conn[:daily_email_count][date.to_s] == 0)
+                  send "calendar_tick##{(Date.today - date).to_i}:2"
+                end
+              rescue NoMethodError => err
+                log(err)
               end
             end.resume
           end
@@ -63,9 +68,17 @@ module EventMachine
       
       def extract_sender_tld(email)
         sender_tld = email.from # Get the "From:" email address from the header
+        sender_tld = sender_tld.first if sender_tld.is_a? Array
         sender_tld = sender_tld.split("@").last
         sender_tld = Domainatrix.parse(sender_tld)
         sender_tld.domain + "." + sender_tld.public_suffix
+      end
+      
+      def log(err)
+        puts err.inspect, err.backtrace
+        @@log.error "-- error: [#{err.inspect}]"
+        @@log.error err.backtrace
+        close_websocket
       end
     end
   end
@@ -83,10 +96,7 @@ EM.synchrony do
     ws.onclose   { ws.logout }
     
     ws.onerror   do |err|
-      puts err.inspect, err.backtrace
-      @@log.error "-- error: [#{err.inspect}]"
-      @@log.error err.backtrace
-      ws.close_websocket
+      ws.log(err)
     end
     
     ws.onmessage do |msg|
@@ -113,7 +123,11 @@ EM.synchrony do
         ws.conn[:daily_email_count] ||= {}
         Fiber.new do
           ws.send "calendar_tick##{msg}:1"
-          ws.email_senders_for_date(date_to_check)
+          begin
+            ws.email_senders_for_date(date_to_check)
+          rescue NoMethodError => err
+            ws.log(err)
+          end
         end.resume
       end
     end
