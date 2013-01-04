@@ -9,6 +9,60 @@ require 'em-websocket'
 require 'logger'
 
 load 'app/models/sender.rb'
+module EventMachine
+  module WebSocket
+    class Connection
+      
+      def identify
+        @@connections[self.object_id] ||= {}
+      end
+      
+      def conn
+        @@connections[self.object_id]
+      end
+      
+      def logout
+        Fiber.new do
+          if conn[:gmail] && conn[:gmail].logged_in?
+            conn[:gmail].logout
+            conn = nil
+          end
+        end.resume
+      end
+
+      def gmail
+        return conn[:gmail] if conn[:gmail] && conn[:gmail].logged_in?
+        conn[:gmail] = Gmail.new(conn[:email], conn[:oauth])
+        conn[:gmail].peek = true
+        conn[:gmail].login
+        conn[:gmail]
+      end
+      
+      def email_senders_for_date(date)
+        weeks_ago = ((Date.today - date).to_i + date.wday) / 7
+        i = 0
+        conn[:daily_email_count][date.to_s] = gmail.inbox.count(:on => date)
+        gmail.inbox.emails(:on => date).each do |email|
+          EM.add_timer(0.3*i) do
+            Fiber.new do
+              sender_domain = sender_domain_for_email(email)
+              send "email_tick##{sender_domain}:#{weeks_ago}:#{date.wday}"
+              conn[:daily_email_count][date.to_s] -= 1
+              if (conn[:daily_email_count][date.to_s] == 0)
+                send "calendar_tick##{(Date.today - date).to_i}:2"
+              end
+            end.resume
+          end
+          i += 1
+        end
+      end
+      
+      def sender_domain_for_email(email)
+        email.from.split("@").last.split(".")[-2..-1].join(".")
+      end
+    end
+  end
+end
 
 EM.synchrony do
   
@@ -16,97 +70,45 @@ EM.synchrony do
     
     @@log = Logger.new(File.expand_path('~/tempo_server.log'), 'daily')
     @@log.level = Logger::INFO
+    @@connections ||= {}
     
     ws.onopen    { ws.send "Authenticating..." }
-    ws.onclose   { @@connections[ws.object_id] = nil }
-    ws.onerror   { |e| puts e; ws.close_websocket }
+    ws.onclose   { ws.logout }
+    
+    ws.onerror   do |err|
+      puts err.inspect, err.backtrace
+      @@log.error "-- error: [#{err.inspect}]"
+      @@log.error err.backtrace
+      ws.close_websocket
+    end
+    
     ws.onmessage do |msg|
       
-      @@connections ||= {}
-      @@connections[ws.object_id] ||= {}
-      
-      begin
+      ws.identify
         
-        header, msg = msg.split("#")
-      
-        if header == "login"
-          Fiber.new do
-            conn(ws)[:email], conn(ws)[:oauth] = msg.split(":")
-            _gmail = Gmail.new(conn(ws)[:email], conn(ws)[:oauth])
-            _gmail.login
-            if _gmail.logged_in?
-              
-              ws.send "Done"
-              @@log.info "New user authorized: #{conn(ws)[:email][0..5]}"
-            else
-              ws.send "signout#"
-            end
-            _gmail.logout
-          end.resume
-        elsif header == "get_tick"
-          date = Date.today - msg.to_i
-          @daily_email_count ||= {}
-          Fiber.new do
-            ws.send "calendar_tick##{msg}:1"
-            email_senders_for_date(ws, date)
-          end.resume
-        end
-      rescue Exception => e
-        puts e
-        @@log.error "-- error: [#{e.inspect}]"
-        @@log.error e.backtrace
-        ws.close_websocket
-      end
-    end
+      header, msg = msg.split("#")
     
-    def email_senders_for_date(ws, date)
-      relative_week = ((Date.today - date).to_i + date.wday) / 7
-      i = 0
-      # Gmail.new(@email, @oauth) do |gmail|
-        # gmail.peek = true
-        
-        @daily_email_count[date.to_s] = gmail(ws).inbox.count(:on => date)
-        gmail(ws).inbox.emails(:on => date).each do |email|
-          EM.add_timer(0.3*i) do
-            Fiber.new do
-              # puts email.header.inspect
-              
-              # return unless conn
-              
-              from_domain = sender_for_email(email)
-              ws.send "email_tick##{from_domain}:#{relative_week}:#{date.wday}"
-              @daily_email_count[date.to_s] -= 1
-              if (@daily_email_count[date.to_s] == 0)
-                ws.send "calendar_tick##{(Date.today - date).to_i}:2"
-              end
-            end.resume
+      if header == "login"
+        Fiber.new do
+          ws.conn[:email], ws.conn[:oauth] = msg.split(":")
+          _gmail = Gmail.new(ws.conn[:email], ws.conn[:oauth])
+          _gmail.login
+          if _gmail.logged_in?
+            ws.send "Done"
+            @@log.info "New user authorized: #{ws.conn[:email][0..4]}"
+          else
+            ws.send "signout#"
           end
-          i += 1
-        # end
+          _gmail.logout
+        end.resume
+      elsif header == "get_tick"
+        date_to_check = Date.today - msg.to_i
+        ws.conn[:daily_email_count] ||= {}
+        Fiber.new do
+          ws.send "calendar_tick##{msg}:1"
+          ws.email_senders_for_date(date_to_check)
+        end.resume
       end
-      
-    end
-    
-    def sender_for_email(email)
-      email.from.split("@").last.split(".")[-2..-1].join(".")
-    end
-    
-    def conn(ws)
-      @@connections[ws.object_id]
-    end
-    
-    def gmail(ws)
-      if conn(ws)[:gmail]
-        if conn(ws)[:gmail].logged_in?
-          return conn(ws)[:gmail]
-        else
-          conn(ws)[:gmail] = nil
-        end
-      end
-      conn(ws)[:gmail] = Gmail.new(conn(ws)[:email], conn(ws)[:oauth])
-      conn(ws)[:gmail].peek = true
-      conn(ws)[:gmail].login
-      conn(ws)[:gmail]
     end
   end
 end
