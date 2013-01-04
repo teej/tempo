@@ -7,6 +7,7 @@ require 'gmail'
 require 'em-synchrony'
 require 'em-websocket'
 require 'logger'
+require 'domainatrix'
 
 load 'app/models/sender.rb'
 module EventMachine
@@ -48,8 +49,8 @@ module EventMachine
             return unless conn
             
             Fiber.new do
-              sender_domain = sender_domain_for_email(email)
-              send "email_tick##{sender_domain}:#{weeks_ago}:#{date.wday}"
+              sender_tld = extract_sender_tld(email)
+              send "email_tick##{sender_tld}:#{weeks_ago}:#{date.wday}"
               conn[:daily_email_count][date.to_s] -= 1
               if (conn[:daily_email_count][date.to_s] == 0)
                 send "calendar_tick##{(Date.today - date).to_i}:2"
@@ -60,8 +61,11 @@ module EventMachine
         end
       end
       
-      def sender_domain_for_email(email)
-        email.from.split("@").last.split(".")[-2..-1].join(".")
+      def extract_sender_tld(email)
+        sender_tld = email.from # Get the "From:" email address from the header
+        sender_tld = sender_tld.split("@").last
+        sender_tld = Domainatrix.parse(sender_tld)
+        sender_tld.domain + "." + sender_tld.public_suffix
       end
     end
   end
