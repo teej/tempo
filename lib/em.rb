@@ -44,6 +44,9 @@ module EventMachine
         conn[:daily_email_count][date.to_s] = gmail.inbox.count(:on => date)
         gmail.inbox.emails(:on => date).each do |email|
           EM.add_timer(0.3*i) do
+            
+            return unless conn
+            
             Fiber.new do
               sender_domain = sender_domain_for_email(email)
               send "email_tick##{sender_domain}:#{weeks_ago}:#{date.wday}"
