@@ -41,35 +41,42 @@ module EventMachine
       
       def email_senders_for_date(date)
         weeks_ago = ((Date.today - date).to_i + date.wday) / 7
-        i = 0
-        conn[:daily_email_count][date.to_s] = gmail.inbox.count(:on => date)
-        gmail.inbox.emails(:on => date).each do |email|
-          EM.add_timer(0.3*i) do
-            
-            return unless conn
-            
-            Fiber.new do
-              
-              begin
-                sender_tld = extract_sender_tld(email)
-                send "email_tick##{sender_tld}:#{weeks_ago}:#{date.wday}"
-                conn[:daily_email_count][date.to_s] -= 1
-                if (conn[:daily_email_count][date.to_s] == 0)
-                  send "calendar_tick##{(Date.today - date).to_i}:2"
-                end
-              rescue NoMethodError => err
-                log(err)
-              end
-            end.resume
-          end
-          i += 1
+        
+        message_uids = gmail.mailbox('[Gmail]/All Mail').emails(:on => date).map{ |msg| msg.uid }
+        
+        imap_request = 'BODY.PEEK[HEADER.FIELDS (FROM)]'
+        data_attr    = 'BODY[HEADER.FIELDS (FROM)]'
+        
+        msg_headers = gmail.in_mailbox(gmail.mailbox('[Gmail]/All Mail')) do
+          gmail.imap.uid_fetch(message_uids, imap_request).map{ |e| e.attr[data_attr] }
         end
+        
+        msg_headers.each do |from_header|
+          sender_tld = extract_sender_tld(from_header)
+          send "email_tick##{sender_tld}:#{weeks_ago}:#{date.wday}"
+        end
+        
+        send "calendar_tick##{(Date.today - date).to_i}:2"
       end
       
-      def extract_sender_tld(email)
-        sender_tld = email.from # Get the "From:" email address from the header
-        sender_tld = sender_tld.first if sender_tld.is_a? Array
-        sender_tld = sender_tld.split("@").last
+      def extract_sender_tld(from_header)
+        # A typical FROM header looks like:
+        # "From: Twitter <n-grrw.zhecul=tznvy.pbz-346f4@postmaster.twitter.com>\r\n\r\n
+        
+        # This code gets the last token in the string with an @ symbol
+        from_header = from_header.strip
+        from_header = from_header.split(" ")
+        sender_addr = ""
+        from_header.reverse_each do |part|
+          if part.include? "@"
+            sender_addr = part.delete("<>").strip
+            break
+          end
+        end
+        
+        # sender_addr #=> "n-grrw.zhecul=tznvy.pbz-346f4@postmaster.twitter.com"
+        
+        sender_tld = sender_addr.split("@").last
         sender_tld = Domainatrix.parse(sender_tld)
         sender_tld.domain + "." + sender_tld.public_suffix
       end

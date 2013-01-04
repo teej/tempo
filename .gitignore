@@ -16,3 +16,5 @@
 
 /config/deploy.rb
 /config/initializers/google_creds.rb
+
+test.rb
