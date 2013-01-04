@@ -44,16 +44,19 @@ module EventMachine
         
         message_uids = gmail.mailbox('[Gmail]/All Mail').emails(:on => date).map{ |msg| msg.uid }
         
-        imap_request = 'BODY.PEEK[HEADER.FIELDS (FROM)]'
-        data_attr    = 'BODY[HEADER.FIELDS (FROM)]'
+        if message_uids.size > 0
         
-        msg_headers = gmail.in_mailbox(gmail.mailbox('[Gmail]/All Mail')) do
-          gmail.imap.uid_fetch(message_uids, imap_request).map{ |e| e.attr[data_attr] }
-        end
+          imap_request = 'BODY.PEEK[HEADER.FIELDS (FROM)]'
+          data_attr    = 'BODY[HEADER.FIELDS (FROM)]'
         
-        msg_headers.each do |from_header|
-          sender_tld = extract_sender_tld(from_header)
-          send "email_tick##{sender_tld}:#{weeks_ago}:#{date.wday}"
+          msg_headers = gmail.in_mailbox(gmail.mailbox('[Gmail]/All Mail')) do
+            gmail.imap.uid_fetch(message_uids, imap_request).map{ |e| e.attr[data_attr] }
+          end
+        
+          msg_headers.each do |from_header|
+            sender_tld = extract_sender_tld(from_header)
+            send "email_tick##{sender_tld}:#{weeks_ago}:#{date.wday}"
+          end
         end
         
         send "calendar_tick##{(Date.today - date).to_i}:2"
