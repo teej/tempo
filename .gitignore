@@ -16,5 +16,6 @@
 
 /config/deploy.rb
 /config/initializers/google_creds.rb
+/config/initializers/bugsnag.rb
 
 test.rb

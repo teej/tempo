@@ -1,13 +1,4 @@
 GIT
-  remote: https://teej@github.com/teej/em-imap.git
-  revision: 1c34af09aa6d9788cdaeca94b9d57db72aefc792
-  branch: synchrony
-  specs:
-    em-imap (0.2.2)
-      deferrable_gratification
-      eventmachine
-
-GIT
   remote: https://teej@github.com/teej/ruby-gmail.git
   revision: a0a3b365febdee29135f11aa9ebfb86d7fb3888b
   branch: eventmachine
@@ -51,6 +42,9 @@ GEM
       multi_json (~> 1.0)
     addressable (2.3.2)
     arel (3.0.2)
+    bugsnag (1.2.9)
+      httparty (>= 0.5, < 1.0)
+      multi_json (~> 1.0)
     builder (3.0.4)
     coffee-rails (3.2.2)
       coffee-script (>= 2.2.0)
@@ -64,6 +58,9 @@ GEM
       eventmachine
     domainatrix (0.0.11)
       addressable
+    em-imap (0.2.2)
+      deferrable_gratification
+      eventmachine
     em-synchrony (1.0.2)
       eventmachine (>= 1.0.0.beta.1)
     em-websocket (0.3.8)
@@ -79,6 +76,9 @@ GEM
       oauth (>= 0.3.6)
     hashie (1.2.0)
     hike (1.2.1)
+    httparty (0.9.0)
+      multi_json (~> 1.0)
+      multi_xml
     httpauth (0.2.0)
     i18n (0.6.1)
     journey (1.0.4)
@@ -95,6 +95,7 @@ GEM
     mime (0.1)
     mime-types (1.19)
     multi_json (1.5.0)
+    multi_xml (0.5.1)
     multipart-post (1.1.5)
     oauth (0.4.7)
     oauth2 (0.8.0)
@@ -168,10 +169,11 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  bugsnag
   coffee-rails (~> 3.2.1)
   daemons
   domainatrix
-  em-imap!
+  em-imap
   em-synchrony
   em-websocket
   eventmachine

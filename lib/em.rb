@@ -8,8 +8,11 @@ require 'em-synchrony'
 require 'em-websocket'
 require 'logger'
 require 'domainatrix'
+require 'bugsnag'
 
+load 'config/initializers/bugsnag.rb'
 load 'app/models/sender.rb'
+
 module EventMachine
   module WebSocket
     class Connection
@@ -52,10 +55,12 @@ module EventMachine
           msg_headers = gmail.in_mailbox(gmail.mailbox('[Gmail]/All Mail')) do
             gmail.imap.uid_fetch(message_uids, imap_request).map{ |e| e.attr[data_attr] }
           end
-        
+          
+          i = 1
           msg_headers.each do |from_header|
             sender_tld = extract_sender_tld(from_header)
-            send "email_tick##{sender_tld}:#{weeks_ago}:#{date.wday}"
+            EM.add_timer(0.1 * i) { send "email_tick##{sender_tld}:#{weeks_ago}:#{date.wday}" } if sender_tld
+            i += 1
           end
         end
         
@@ -80,7 +85,14 @@ module EventMachine
         # sender_addr #=> "n-grrw.zhecul=tznvy.pbz-346f4@postmaster.twitter.com"
         
         sender_tld = sender_addr.split("@").last
-        sender_tld = Domainatrix.parse(sender_tld)
+        if rand < 0.2
+          sender_tld = "usps.com>"
+        end
+        begin
+          sender_tld = Domainatrix.parse(sender_tld)
+        rescue
+          return nil
+        end
         sender_tld.domain + "." + sender_tld.public_suffix
       end
       
@@ -88,6 +100,7 @@ module EventMachine
         puts err.inspect, err.backtrace
         @@log.error "-- error: [#{err.inspect}]"
         @@log.error err.backtrace
+        Bugsnag.notify(err)
         close_websocket
       end
     end
